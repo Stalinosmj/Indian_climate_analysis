@@ -1,0 +1,446 @@
+---
+title: "Enhanced Climate Data Acquisition with Quality Control"
+author: "India Climate Study - Data Pipeline"
+date: "`r Sys.Date()`"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: false
+---
+
+# Enhanced Climate Data Acquisition and Processing
+
+This document implements advanced climate data acquisition using multiple sources with comprehensive quality control and validation protocols.
+
+## Setup
+
+```{r setup, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Load enhanced configuration and functions
+config <- readRDS("data/enhanced_config.rds")
+qc_functions <- readRDS("data/processed/qc_functions.rds")
+performance_monitor <- readRDS("data/processed/performance_monitor.rds")
+
+# Load required packages
+library(geodata)
+library(terra)
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(viridis)
+```
+
+## Enhanced WorldClim Data Download
+
+```{r worldclim-enhanced, results='hide'}
+cat("Downloading enhanced WorldClim dataset...\n")
+
+# Function to download WorldClim with error handling and validation
+download_worldclim_enhanced <- function(var, resolution = 10, validate = TRUE) {
+  tryCatch({
+    cat(paste("Downloading", var, "data...\n"))
+    
+    # Download data with retry mechanism
+    data <- NULL
+    max_retries <- 3
+    
+    for(retry in 1:max_retries) {
+      tryCatch({
+        data <- geodata::worldclim_global(
+          var = var, 
+          res = resolution,
+          path = file.path(config$data_dir, "raw")
+        )
+        break
+      }, error = function(e) {
+        if(retry == max_retries) stop(e)
+        cat(paste("Retry", retry, "for", var, "\n"))
+        Sys.sleep(5)  # Wait before retry
+      })
+    }
+    
+    if(is.null(data)) stop("Failed to download data after retries")
+    
+    # Quality validation
+    if(validate) {
+      missing_pct <- qc_functions$assess_missing_data(data)
+      if(any(missing_pct > 10, na.rm = TRUE)) {
+        warning(paste("High missing data percentage for", var, ":", max(missing_pct, na.rm = TRUE), "%"))
+      }
+    }
+    
+    cat(paste("Successfully downloaded", var, "\n"))
+    return(data)
+    
+  }, error = function(e) {
+    cat(paste("Error downloading", var, ":", e$message, "\n"))
+    return(NULL)
+  })
+}
+
+# Download comprehensive climate dataset
+climate_data <- list()
+
+# Temperature variables
+temp_vars <- c("tavg", "tmin", "tmax")
+for(var in temp_vars) {
+  climate_data[[var]] <- download_worldclim_enhanced(var, config$climate_resolution)
+  if(!is.null(climate_data[[var]])) {
+    performance_monitor$log_performance(paste("download", var))
+  }
+}
+
+# Precipitation
+climate_data[["prec"]] <- download_worldclim_enhanced("prec", config$climate_resolution)
+
+# Additional variables (optional)
+additional_vars <- c("wind", "srad")
+for(var in additional_vars) {
+  result <- download_worldclim_enhanced(var, config$climate_resolution)
+  if(!is.null(result)) {
+    climate_data[[var]] <- result
+    cat(paste("Added", var, "to dataset\n"))
+  }
+}
+
+cat("WorldClim download completed\n")
+```
+
+## Advanced Data Processing and Quality Control
+
+```{r advanced-processing}
+# Function for comprehensive data processing
+process_climate_data <- function(data_list, apply_qc = TRUE) {
+  
+  processed_data <- list()
+  qc_reports <- list()
+  
+  for(var_name in names(data_list)) {
+    if(is.null(data_list[[var_name]])) next
+    
+    cat(paste("Processing", var_name, "...\n"))
+    
+    data <- data_list[[var_name]]
+    
+    # Initialize QC report
+    qc_report <- list(
+      variable = var_name,
+      original_range = range(values(data), na.rm = TRUE),
+      missing_data_pct = qc_functions$assess_missing_data(data),
+      outliers_detected = 0,
+      spatial_inconsistencies = 0,
+      processing_steps = c()
+    )
+    
+    if(apply_qc) {
+      # Outlier detection and handling for raster data
+      if(inherits(data, "SpatRaster")) {
+        for(i in 1:nlyr(data)) {
+          layer_values <- values(data[[i]], na.rm = TRUE)
+          if(length(layer_values) == 0) next
+          
+          outliers <- qc_functions$detect_outliers(layer_values)
+          outlier_count <- sum(outliers, na.rm = TRUE)
+          
+          if(outlier_count > 0) {
+            qc_report$outliers_detected <- qc_report$outliers_detected + outlier_count
+            # Cap extreme outliers
+            p95 <- quantile(layer_values, 0.95, na.rm = TRUE)
+            p05 <- quantile(layer_values, 0.05, na.rm = TRUE)
+            
+            all_values <- values(data[[i]])
+            all_values[all_values > p95] <- p95
+            all_values[all_values < p05] <- p05
+            values(data[[i]]) <- all_values
+            
+            qc_report$processing_steps <- c(qc_report$processing_steps, "outlier_capping")
+          }
+        }
+      }
+      
+      # Unit conversions
+      if(grepl("temp|tavg|tmin|tmax", var_name, ignore.case = TRUE)) {
+        # Ensure temperature is in Celsius
+        temp_range <- range(values(data), na.rm = TRUE)
+        if(temp_range[1] > 50) {  # Likely Kelvin
+          data <- data - 273.15
+          qc_report$processing_steps <- c(qc_report$processing_steps, "kelvin_to_celsius")
+        }
+      }
+      
+      if(grepl("prec", var_name, ignore.case = TRUE)) {
+        # Ensure precipitation is non-negative
+        data[data < 0] <- 0
+        qc_report$processing_steps <- c(qc_report$processing_steps, "non_negative_precip")
+      }
+    }
+    
+    # Calculate final statistics
+    qc_report$final_range <- range(values(data), na.rm = TRUE)
+    qc_report$final_missing_pct <- qc_functions$assess_missing_data(data)
+    
+    processed_data[[var_name]] <- data
+    qc_reports[[var_name]] <- qc_report
+    
+    cat(paste("Completed processing", var_name, "\n"))
+  }
+  
+  return(list(data = processed_data, qc_reports = qc_reports))
+}
+
+# Apply advanced processing
+processed_results <- process_climate_data(climate_data, apply_qc = TRUE)
+processed_climate_data <- processed_results$data
+qc_reports <- processed_results$qc_reports
+
+performance_monitor$log_performance("data_processing_complete")
+```
+
+## Climate Variable Derivation
+
+```{r derive-variables}
+# Derive additional climate variables from basic data
+derive_climate_indices <- function(data_list) {
+  derived_vars <- list()
+  
+  # Temperature-based indices
+  if(all(c("tmax", "tmin") %in% names(data_list))) {
+    cat("Deriving temperature indices...\n")
+    
+    # Diurnal Temperature Range
+    derived_vars$dtr <- data_list$tmax - data_list$tmin
+    names(derived_vars$dtr) <- paste0("DTR_", 1:12)
+    
+    # Growing Degree Days (base 10°C)
+    if("tavg" %in% names(data_list)) {
+      gdd_base <- 10
+      derived_vars$gdd <- pmax(data_list$tavg - gdd_base, 0)
+      names(derived_vars$gdd) <- paste0("GDD_", 1:12)
+    }
+  }
+  
+  # Precipitation-based indices
+  if("prec" %in% names(data_list)) {
+    cat("Deriving precipitation indices...\n")
+    
+    # Annual precipitation
+    derived_vars$annual_prec <- sum(data_list$prec)
+    names(derived_vars$annual_prec) <- "Annual_Precipitation"
+    
+    # Precipitation seasonality (coefficient of variation)
+    prec_mean <- mean(data_list$prec)
+    prec_sd <- stdev(data_list$prec)
+    derived_vars$prec_seasonality <- prec_sd / prec_mean
+    names(derived_vars$prec_seasonality) <- "Precip_Seasonality"
+    
+    # Monsoon precipitation (Jun-Sep for India)
+    if(nlyr(data_list$prec) == 12) {
+      monsoon_months <- c(6, 7, 8, 9)
+      derived_vars$monsoon_prec <- sum(data_list$prec[[monsoon_months]])
+      names(derived_vars$monsoon_prec) <- "Monsoon_Precipitation"
+    }
+  }
+  
+  # Aridity index (if both temp and precip available)
+  if(all(c("tavg", "prec") %in% names(data_list))) {
+    cat("Deriving aridity index...\n")
+    annual_temp <- mean(data_list$tavg)
+    annual_prec <- sum(data_list$prec)
+    # Simplified Aridity Index (AI = P/PET, where PET ≈ T + 10)
+    derived_vars$aridity_index <- annual_prec / (annual_temp + 10)
+    names(derived_vars$aridity_index) <- "Aridity_Index"
+  }
+  
+  return(derived_vars)
+}
+
+# Derive additional climate variables
+derived_climate_vars <- derive_climate_indices(processed_climate_data)
+cat("Derived", length(derived_climate_vars), "additional climate indices\n")
+
+# Combine original and derived variables
+all_climate_data <- c(processed_climate_data, derived_climate_vars)
+```
+
+## Enhanced Visualization Dashboard
+
+```{r enhanced-visualization, fig.width=14, fig.height=10}
+# Create comprehensive visualization dashboard
+create_climate_dashboard <- function(data_list, qc_reports) {
+  
+  plots <- list()
+  
+  # Temperature overview
+  if("tavg" %in% names(data_list)) {
+    temp_annual <- mean(data_list$tavg)
+    
+    plots$temperature <- ggplot() +
+      geom_raster(data = as.data.frame(temp_annual, xy = TRUE), 
+                  aes(x = x, y = y, fill = mean)) +
+      scale_fill_viridis_c(name = "Temp (°C)", option = "plasma") +
+      labs(title = "Global Annual Mean Temperature",
+           subtitle = "WorldClim v2.1 - Enhanced Processing") +
+      theme_void() +
+      theme(legend.position = "bottom")
+  }
+  
+  # Precipitation overview
+  if("prec" %in% names(data_list)) {
+    prec_annual <- sum(data_list$prec)
+    
+    plots$precipitation <- ggplot() +
+      geom_raster(data = as.data.frame(prec_annual, xy = TRUE), 
+                  aes(x = x, y = y, fill = sum)) +
+      scale_fill_viridis_c(name = "Precip (mm)", option = "viridis", 
+                          trans = "log10", labels = scales::comma) +
+      labs(title = "Global Annual Total Precipitation",
+           subtitle = "WorldClim v2.1 - Enhanced Processing") +
+      theme_void() +
+      theme(legend.position = "bottom")
+  }
+  
+  # Quality control summary
+  if(length(qc_reports) > 0) {
+    qc_summary <- data.frame(
+      Variable = names(qc_reports),
+      Missing_Data_Pct = sapply(qc_reports, function(x) max(x$final_missing_pct, na.rm = TRUE)),
+      Outliers_Detected = sapply(qc_reports, function(x) x$outliers_detected),
+      Processing_Steps = sapply(qc_reports, function(x) length(x$processing_steps))
+    )
+    
+    plots$qc_summary <- ggplot(qc_summary, aes(x = reorder(Variable, Missing_Data_Pct))) +
+      geom_col(aes(y = Missing_Data_Pct), fill = "lightcoral", alpha = 0.7) +
+      geom_point(aes(y = Processing_Steps * max(Missing_Data_Pct, na.rm = TRUE) / max(Processing_Steps, na.rm = TRUE)), 
+                 color = "darkblue", size = 3) +
+      labs(title = "Data Quality Control Summary",
+           x = "Climate Variable", y = "Missing Data %") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+  
+  # Aridity index overview
+  if("aridity_index" %in% names(data_list)) {
+    plots$aridity <- ggplot() +
+      geom_raster(data = as.data.frame(data_list$aridity_index, xy = TRUE), 
+                  aes(x = x, y = y, fill = Aridity_Index)) +
+      scale_fill_viridis_c(name = "Aridity\nIndex", option = "cividis") +
+      labs(title = "Global Aridity Index",
+           subtitle = "P/PET ratio (higher = more humid)") +
+      theme_void() +
+      theme(legend.position = "bottom")
+  }
+  
+  return(plots)
+}
+
+# Generate comprehensive dashboard
+dashboard_plots <- create_climate_dashboard(all_climate_data, qc_reports)
+
+# Combine available plots
+available_plots <- dashboard_plots[!sapply(dashboard_plots, is.null)]
+
+if(length(available_plots) >= 2) {
+  combined_dashboard <- do.call(cowplot::plot_grid, c(available_plots, list(ncol = 2)))
+  print(combined_dashboard)
+  
+  # Save dashboard
+  ggsave(file.path(config$output_dir, "plots", "enhanced_climate_dashboard.png"), 
+         combined_dashboard, width = 14, height = 10, dpi = 300, bg = "white")
+} else if(length(available_plots) > 0) {
+  print(available_plots[[1]])
+}
+```
+
+## Save Enhanced Dataset
+
+```{r save-enhanced-data}
+# Save comprehensive dataset with metadata
+enhanced_dataset <- list(
+  # Climate data
+  raw_data = climate_data,
+  processed_data = processed_climate_data,
+  derived_variables = derived_climate_vars,
+  all_data = all_climate_data,
+  
+  # Quality control information
+  qc_reports = qc_reports,
+  
+  # Processing metadata
+  processing_info = list(
+    timestamp = Sys.time(),
+    r_version = R.version.string,
+    packages_used = c("geodata", "terra", "ggplot2", "dplyr"),
+    processing_steps = c(
+      "download_worldclim",
+      "quality_control", 
+      "derive_indices"
+    )
+  )
+)
+
+# Save individual components
+saveRDS(processed_climate_data, "data/processed/enhanced_climate_data.rds")
+saveRDS(derived_climate_vars, "data/processed/derived_climate_indices.rds")
+saveRDS(qc_reports, "data/processed/climate_qc_reports.rds")
+saveRDS(enhanced_dataset, "data/processed/complete_enhanced_dataset.rds")
+
+# Save metadata
+climate_metadata <- list(
+  data_source = "WorldClim v2.1",
+  variables = names(all_climate_data),
+  processing_date = Sys.Date(),
+  spatial_resolution = paste(config$climate_resolution, "arc-minutes"),
+  temporal_coverage = "1970-2000 climatology",
+  quality_control = "Applied",
+  coordinate_system = config$target_crs,
+  total_variables = length(all_climate_data)
+)
+
+saveRDS(climate_metadata, "data/processed/enhanced_climate_metadata.rds")
+
+# Export summary statistics
+climate_summary <- data.frame(
+  Variable = names(all_climate_data),
+  Type = ifelse(names(all_climate_data) %in% names(processed_climate_data), "Primary", "Derived"),
+  Min = sapply(all_climate_data, function(x) round(min(values(x), na.rm = TRUE), 2)),
+  Max = sapply(all_climate_data, function(x) round(max(values(x), na.rm = TRUE), 2)),
+  Mean = sapply(all_climate_data, function(x) round(mean(values(x), na.rm = TRUE), 2)),
+  Missing_Pct = sapply(all_climate_data, function(x) round(qc_functions$assess_missing_data(x), 2))
+)
+
+write.csv(climate_summary, "data/processed/enhanced_climate_summary.csv", row.names = FALSE)
+
+performance_monitor$log_performance("data_saving_complete")
+cat("Enhanced climate dataset saved successfully\n")
+```
+
+## Summary
+
+```{r final-summary}
+cat("\n=== ENHANCED CLIMATE DATA ACQUISITION COMPLETE ===\n")
+cat("Variables processed:", length(all_climate_data), "\n")
+cat("Primary variables:", sum(climate_summary$Type == "Primary"), "\n")
+cat("Derived indices:", sum(climate_summary$Type == "Derived"), "\n")
+
+if(length(qc_reports) > 0) {
+  total_outliers <- sum(sapply(qc_reports, function(x) x$outliers_detected))
+  cat("Quality control applied:", length(qc_reports), "variables\n")
+  cat("Total outliers detected:", total_outliers, "\n")
+}
+
+cat("\nFiles Created:\n")
+cat("- data/processed/enhanced_climate_data.rds\n")
+cat("- data/processed/derived_climate_indices.rds\n")
+cat("- data/processed/climate_qc_reports.rds\n")
+cat("- data/processed/complete_enhanced_dataset.rds\n")
+cat("- data/processed/enhanced_climate_metadata.rds\n")
+cat("- data/processed/enhanced_climate_summary.csv\n")
+
+if(file.exists(file.path(config$output_dir, "plots", "enhanced_climate_dashboard.png"))) {
+  cat("- outputs/plots/enhanced_climate_dashboard.png\n")
+}
+
+cat("\nNext Step: Run 03-enhanced-regional-processing.qmd\n")
+```

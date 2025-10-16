@@ -1,0 +1,5 @@
+"Variable","Model","RMSE","MAE","R2","NSE"
+"tavg","xgboost",0.1114,0.0879,0.9985,0.9974
+"tavg","randomforest",0.5946,0.4075,0.9366,0.9255
+"prec","xgboost",4.9379,3.2572,0.9994,0.9988
+"prec","randomforest",9.607,6.7628,0.9964,0.9956

@@ -1,0 +1,35 @@
+project:
+  type: book
+
+book:
+  title: "Indian_climate_analysis"
+  author: "Stalino A J"
+  date: "10/16/2025"
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - 01-enhanced-setup.qmd
+    - 02-enhanced-data-acquisition.qmd
+    - 03-enhanced-regional-processing.qmd
+    - 04-enhanced-time-series.qmd
+    - 05-enhanced-arima-modeling.qmd
+    - 06-enhanced-ml-modeling.qmd
+    - 07-enhanced-future-scenarios.qmd
+    - 08-enhanced-integration.qmd
+    - 09-enhanced-interactive-dashboard.qmd 
+    - 10-enhanced-comprehensive-summary.qmd
+    - summary.qmd
+    - references.qmd
+
+bibliography: references.bib
+
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+  pdf:
+    documentclass: scrreprt
+
+editor: visual
+

@@ -1,0 +1,7 @@
+"Model","Variable","Method","Train_RMSE","Test_RMSE","Test_R2","CV_RMSE"
+"ARIMA","tavg","Time Series",0.782016592166125,0.940361436658666,0.837260685704073,NA
+"ARIMA","prec","Time Series",36.8546316433483,36.3046124043576,0.940804853118855,NA
+"xgboost","tavg","Machine Learning",NA,0.1114,0.9985,NA
+"randomforest","tavg","Machine Learning",NA,0.5946,0.9366,NA
+"xgboost","prec","Machine Learning",NA,4.9379,0.9994,NA
+"randomforest","prec","Machine Learning",NA,9.607,0.9964,NA

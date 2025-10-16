@@ -1,0 +1,3 @@
+"Variable","Trend_Direction","Slope_Per_Decade","Linear_P_Value","Linear_Significant","MK_Trend","MK_P_Value"
+"tavg","Increasing",0.554976,0.00386462764613019,TRUE,"Unknown",NA
+"prec","Increasing",7.045804,0.568829258898504,FALSE,"Unknown",NA

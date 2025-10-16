@@ -1,0 +1,349 @@
+---
+title: "Enhanced Climate Analysis Setup"
+author: "India Climate Study - Advanced Pipeline"
+date: "`r Sys.Date()`"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: false
+params:
+  data_dir: "data"
+  output_dir: "outputs"
+  resolution: 10  # arc-minutes for climate data
+  use_parallel: TRUE
+  num_cores: 4
+---
+
+# Enhanced Environment Setup and Configuration
+
+This document sets up an advanced environment for India climate change analysis with improved packages, containerization support, and reproducible workflows.
+
+## Load Enhanced Package Suite
+
+```{r setup, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Create enhanced directory structure
+dirs_to_create <- c(
+  params$data_dir, params$output_dir,
+  "data/raw", "data/processed", "data/bias_corrected",
+  "data/downscaled", "data/validation", "outputs/plots",
+  "outputs/models", "outputs/reports", "outputs/interactive"
+)
+
+for(dir in dirs_to_create) {
+  if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
+}
+```
+
+## Install and Load Advanced Packages
+
+```{r packages, results='hide'}
+# Enhanced package management
+if (!require("pacman")) install.packages("pacman")
+
+# Core packages with enhanced functionality
+pacman::p_load(
+  # Enhanced spatial data
+  geodata, terra, sf, rnaturalearth, stars, exactextractr,
+  
+  # Advanced time series and forecasting
+  forecast, tseries, changepoint, bcp, prophet,
+  
+  # Modern machine learning
+  tidymodels, parsnip, recipes, workflows, tune, yardstick,
+  ranger, xgboost, lightgbm,
+  
+  # Deep learning (conditional installation)
+  torch, luz, 
+  
+  # Advanced statistics and bias correction
+  qmap, 
+  
+  # Enhanced visualization
+  ggplot2, plotly, gganimate, rayshader, leaflet,
+  patchwork, ggridges, viridis, RColorBrewer,
+  
+  # Explainable AI
+  DALEX, iml, fastshap,
+  
+  # Data manipulation
+  tidyverse, lubridate, data.table, furrr,
+  
+  # Reproducible workflows
+  targets, renv, here,
+  
+  # Parallel processing
+  parallel, doParallel, future,
+  
+  # Model evaluation
+  hydroGOF, verification,
+  
+  # Interactive dashboards
+  shiny, shinydashboard, DT,
+  
+  # Climate-specific packages
+  nasapower, rnoaa,
+  
+  # Utility packages
+  janitor, skimr, corrplot, cowplot
+)
+
+# Install torch conditionally
+torch_available <- requireNamespace("torch", quietly = TRUE)
+if (!torch_available) {
+  cat("Installing torch for deep learning...\n")
+  try({
+    install.packages("torch")
+    torch::install_torch()
+  }, silent = TRUE)
+}
+
+cat("Enhanced package suite loaded successfully\n")
+```
+
+## Enhanced Global Configuration
+
+```{r enhanced-config}
+# Set parallel processing
+if (params$use_parallel) {
+  library(doParallel)
+  cl <- makeCluster(params$num_cores)
+  registerDoParallel(cl)
+  
+  # Future package for async processing
+  library(future)
+  plan(multisession, workers = params$num_cores)
+}
+
+# Enhanced configuration with bias correction parameters
+enhanced_config <- list(
+  # Basic settings
+  data_dir = params$data_dir,
+  output_dir = params$output_dir,
+  target_crs = "EPSG:4326",
+  main_dir = here::here(),
+  random_seed = 123,
+  
+  # Data acquisition settings
+  climate_resolution = params$resolution,
+  data_sources = c("WorldClim", "TerraClimate", "ERA5-Land"),
+  preferred_source = "WorldClim",
+  
+  # Bias correction parameters
+  bias_correction = list(
+    method = "quantile_mapping",
+    reference_period = c(2000, 2020),
+    calibration_period = c(2000, 2015),
+    validation_period = c(2016, 2020)
+  ),
+  
+  # Model parameters
+  modeling = list(
+    cv_folds = 5,
+    test_fraction = 0.2,
+    validation_fraction = 0.15,
+    ensemble_methods = c("ARIMA", "RandomForest", "XGBoost", "LSTM"),
+    hyperparameter_tuning = TRUE
+  ),
+  
+  # Forecasting parameters
+  forecasting = list(
+    horizon_years = 30,  # 2024-2054
+    scenarios = c("SSP1-2.6", "SSP2-4.5", "SSP3-7.0", "SSP5-8.5"),
+    confidence_levels = c(0.8, 0.95),
+    ensemble_weights = "performance_based"
+  ),
+  
+  # Visualization parameters
+  visualization = list(
+    theme = "modern",
+    color_palette = "viridis",
+    interactive = TRUE,
+    animation = TRUE,
+    high_res_plots = TRUE,
+    plot_dimensions = list(width = 12, height = 8, dpi = 300)
+  ),
+  
+  # Processing parameters
+  processing = list(
+    parallel = params$use_parallel,
+    num_cores = params$num_cores,
+    memory_limit = "8GB",
+    cache_intermediate = TRUE
+  ),
+  
+  # Quality control parameters
+  quality_control = list(
+    outlier_detection = TRUE,
+    missing_data_threshold = 0.1,
+    spatial_consistency_check = TRUE,
+    temporal_consistency_check = TRUE
+  )
+)
+
+# Save enhanced configuration
+saveRDS(enhanced_config, "data/enhanced_config.rds")
+cat("Enhanced configuration saved to data/enhanced_config.rds\n")
+```
+
+## Enhanced Quality Control Functions
+
+```{r quality-control}
+# Advanced quality control functions
+qc_functions <- list(
+  
+  # Outlier detection using modified Z-score
+  detect_outliers = function(data, threshold = 3.5) {
+    median_val <- median(data, na.rm = TRUE)
+    mad_val <- mad(data, na.rm = TRUE)
+    modified_z_scores <- 0.6745 * (data - median_val) / mad_val
+    return(abs(modified_z_scores) > threshold)
+  },
+  
+  # Spatial consistency check
+  spatial_consistency = function(raster_data, max_diff = 5) {
+    focal_mean <- terra::focal(raster_data, w = matrix(1, 3, 3), fun = "mean", na.rm = TRUE)
+    differences <- abs(raster_data - focal_mean)
+    return(differences > max_diff)
+  },
+  
+  # Temporal consistency check
+  temporal_consistency = function(time_series, max_change = 10) {
+    differences <- abs(diff(time_series))
+    outliers <- differences > max_change
+    return(c(FALSE, outliers))  # First value can't be an outlier
+  },
+  
+  # Missing data assessment
+  assess_missing_data = function(data) {
+    if(inherits(data, "SpatRaster")) {
+      missing_pct <- global(is.na(data), "sum", na.rm = FALSE) / ncell(data) * 100
+      return(as.numeric(missing_pct))
+    } else {
+      return(sum(is.na(data)) / length(data) * 100)
+    }
+  }
+)
+
+# Save QC functions
+saveRDS(qc_functions, "data/processed/qc_functions.rds")
+cat("Quality control functions saved\n")
+```
+
+## Model Registry and Performance Monitoring
+
+```{r model-registry}
+# Initialize model registry for tracking experiments
+model_registry <- list(
+  experiments = data.frame(
+    experiment_id = character(),
+    model_type = character(),
+    data_source = character(),
+    features_used = character(),
+    hyperparameters = character(),
+    training_period = character(),
+    validation_rmse = numeric(),
+    test_rmse = numeric(),
+    timestamp = as.POSIXct(character()),
+    stringsAsFactors = FALSE
+  ),
+  
+  best_models = list(
+    temperature = NULL,
+    precipitation = NULL
+  ),
+  
+  ensemble_weights = NULL
+)
+
+saveRDS(model_registry, "data/processed/model_registry.rds")
+
+# Define performance monitor environment
+performance_monitor <- new.env()
+
+performance_monitor$start_time <- Sys.time()
+
+performance_monitor$memory_usage <- list()
+performance_monitor$processing_times <- list()
+
+performance_monitor$log_performance <- function(step_name, memory_mb = NULL) {
+  current_time <- Sys.time()
+  elapsed <- as.numeric(difftime(current_time, performance_monitor$start_time, units = "mins"))
+  
+  if (is.null(memory_mb)) {
+    memory_mb <- sum(sapply(ls(envir = .GlobalEnv), function(x) {
+      object.size(get(x, envir = .GlobalEnv))
+    }), na.rm = TRUE) / 1024^2
+  }
+  
+  performance_monitor$memory_usage[[step_name]] <- memory_mb
+  performance_monitor$processing_times[[step_name]] <- elapsed
+  
+  cat(paste("Step:", step_name, "- Memory:", round(memory_mb, 2), "MB - Elapsed:", round(elapsed, 2), "min\n"))
+}
+
+
+# Save performance monitor
+saveRDS(performance_monitor, "data/processed/performance_monitor.rds")
+performance_monitor$log_performance("setup_complete")
+```
+
+## Reproducibility and Session Information
+
+```{r reproducibility}
+# Create reproducibility manifest
+reproducibility_info <- list(
+  r_version = R.version.string,
+  platform = R.version$platform,
+  packages = sessionInfo()$otherPkgs,
+  system_info = Sys.info(),
+  git_commit = tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) "Not available"),
+  timestamp = Sys.time(),
+  config_hash = digest::digest(enhanced_config)
+)
+
+saveRDS(reproducibility_info, "data/processed/reproducibility_info.rds")
+
+# Initialize renv for package management (optional)
+if (!file.exists("renv.lock") && requireNamespace("renv", quietly = TRUE)) {
+  cat("Initializing renv for package management...\n")
+  tryCatch({
+    renv::init()
+  }, error = function(e) {
+    cat("renv initialization failed:", e$message, "\n")
+  })
+}
+
+# Session information
+cat("\n=== SESSION INFORMATION ===\n")
+sessionInfo()
+```
+
+## Final Setup Summary
+
+```{r setup-summary}
+cat("\n=== ENHANCED SETUP COMPLETE ===\n")
+cat("✓ Advanced package suite loaded\n")
+cat("✓ Enhanced configuration created\n")
+cat("✓ Quality control functions initialized\n") 
+cat("✓ Model registry established\n")
+cat("✓ Parallel processing configured (", params$num_cores, "cores)\n")
+cat("✓ Reproducibility tracking enabled\n")
+cat("✓ Performance monitoring active\n")
+
+# Stop parallel cluster if created
+if (exists("cl")) {
+  stopCluster(cl)
+}
+
+cat("\nFiles Created:\n")
+cat("- data/enhanced_config.rds\n")
+cat("- data/processed/qc_functions.rds\n")
+cat("- data/processed/model_registry.rds\n")
+cat("- data/processed/performance_monitor.rds\n")
+cat("- data/processed/reproducibility_info.rds\n")
+
+cat("\nNext Step: Run 02-enhanced-data-acquisition.qmd\n")
+```

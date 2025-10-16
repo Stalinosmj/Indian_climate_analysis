@@ -1,0 +1,5 @@
+"Model","Temporal_Patterns","Non_Linear_Relationships","Feature_Interactions","Uncertainty_Quantification","Interpretability","Long_Term_Forecasting","Computational_Efficiency"
+"ARIMA","Excellent","Limited","No","Good","High","Good","High"
+"Random Forest","Good","Excellent","Good","Limited","Medium","Limited","Medium"
+"XGBoost","Good","Excellent","Excellent","Limited","Low","Limited","Medium"
+"Statistical Projection","Basic","Limited","No","Good","High","Excellent","High"
