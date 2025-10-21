@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="India Climate Study - Enhanced Projections">
-<meta name="dcterms.date" content="2025-10-16">
+<meta name="dcterms.date" content="2025-10-21">
 
 <title>8&nbsp; Advanced Future Climate Scenarios with CMIP6 Integration – Indian_climate_analysis</title>
 <style>
@@ -274,7 +274,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 16, 2025</p>
+      <p class="date">October 21, 2025</p>
     </div>
   </div>
   
@@ -416,7 +416,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>performance_monitor<span class="sc">$</span><span class="fu">log_performance</span>(<span class="st">"scenarios_defined"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Step: scenarios_defined - Memory: 5.89 MB - Elapsed: 3.98 min</code></pre>
+<pre><code>Step: scenarios_defined - Memory: 5.89 MB - Elapsed: 0.38 min</code></pre>
 </div>
 </div>
 </section>
@@ -688,7 +688,7 @@ Variables: 2 </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>performance_monitor<span class="sc">$</span><span class="fu">log_performance</span>(<span class="st">"projections_generated"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Step: projections_generated - Memory: 7.8 MB - Elapsed: 3.99 min</code></pre>
+<pre><code>Step: projections_generated - Memory: 7.8 MB - Elapsed: 0.39 min</code></pre>
 </div>
 </div>
 </section>
@@ -785,7 +785,7 @@ Ensemble statistics calculated for 72 scenario-decade-method combinations</code>
 </div>
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>performance_monitor<span class="sc">$</span><span class="fu">log_performance</span>(<span class="st">"uncertainty_analysis"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Step: uncertainty_analysis - Memory: 8.35 MB - Elapsed: 3.99 min</code></pre>
+<pre><code>Step: uncertainty_analysis - Memory: 8.35 MB - Elapsed: 0.4 min</code></pre>
 </div>
 </div>
 </section>
@@ -956,7 +956,7 @@ Ensemble statistics calculated for 72 scenario-decade-method combinations</code>
 </div>
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>performance_monitor<span class="sc">$</span><span class="fu">log_performance</span>(<span class="st">"projection_visualization"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Step: projection_visualization - Memory: 146.64 MB - Elapsed: 4.04 min</code></pre>
+<pre><code>Step: projection_visualization - Memory: 146.64 MB - Elapsed: 0.56 min</code></pre>
 </div>
 </div>
 </section>
@@ -1050,18 +1050,18 @@ Projected Impacts by 2040s:
 # A tibble: 8 × 4
   variable scenario                         change_from_baseline impact_severity
   &lt;chr&gt;    &lt;chr&gt;                                           &lt;dbl&gt; &lt;chr&gt;          
-1 prec     SSP1-2.6 (Sustainability)                       30.5  Severe         
-2 prec     SSP2-4.5 (Middle of the Road)                   46.3  Severe         
-3 prec     SSP3-7.0 (Regional Rivalry)                     25.2  High           
-4 prec     SSP5-8.5 (Fossil-fueled Develop…                10.2  Moderate       
-5 tavg     SSP1-2.6 (Sustainability)                        1.19 Low            
-6 tavg     SSP2-4.5 (Middle of the Road)                    1.37 Low            
-7 tavg     SSP3-7.0 (Regional Rivalry)                      1.69 Moderate       
-8 tavg     SSP5-8.5 (Fossil-fueled Develop…                 1.91 Moderate       </code></pre>
+1 prec     SSP1-2.6 (Sustainability)                       31.6  Severe         
+2 prec     SSP2-4.5 (Middle of the Road)                   48.0  Severe         
+3 prec     SSP3-7.0 (Regional Rivalry)                     26.2  High           
+4 prec     SSP5-8.5 (Fossil-fueled Develop…                13.1  Moderate       
+5 tavg     SSP1-2.6 (Sustainability)                        1.18 Low            
+6 tavg     SSP2-4.5 (Middle of the Road)                    1.41 Low            
+7 tavg     SSP3-7.0 (Regional Rivalry)                      1.68 Moderate       
+8 tavg     SSP5-8.5 (Fossil-fueled Develop…                 1.96 Moderate       </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>performance_monitor<span class="sc">$</span><span class="fu">log_performance</span>(<span class="st">"impact_assessment"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Step: impact_assessment - Memory: 146.83 MB - Elapsed: 4.06 min</code></pre>
+<pre><code>Step: impact_assessment - Memory: 146.83 MB - Elapsed: 0.63 min</code></pre>
 </div>
 </div>
 </section>
@@ -1117,7 +1117,7 @@ Projected Impacts by 2040s:
 <span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a>performance_monitor<span class="sc">$</span><span class="fu">log_performance</span>(<span class="st">"projections_saving"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Step: projections_saving - Memory: 148.38 MB - Elapsed: 4.07 min</code></pre>
+<pre><code>Step: projections_saving - Memory: 148.38 MB - Elapsed: 0.64 min</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Enhanced projection analysis results saved</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1177,16 +1177,16 @@ Variables projected: 2 </code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Temperature Projections (2040s):
-• SSP1-2.6 (Sustainability) : 1.19 °C warming ( Low impact)
-• SSP2-4.5 (Middle of the Road) : 1.37 °C warming ( Low impact)
-• SSP3-7.0 (Regional Rivalry) : 1.69 °C warming ( Moderate impact)
-• SSP5-8.5 (Fossil-fueled Development) : 1.91 °C warming ( Moderate impact)
+• SSP1-2.6 (Sustainability) : 1.18 °C warming ( Low impact)
+• SSP2-4.5 (Middle of the Road) : 1.41 °C warming ( Low impact)
+• SSP3-7.0 (Regional Rivalry) : 1.68 °C warming ( Moderate impact)
+• SSP5-8.5 (Fossil-fueled Development) : 1.96 °C warming ( Moderate impact)
 
 Precipitation Projections (2040s):
-•SSP1-2.6 (Sustainability):30.5% increase (Severe impact)
-•SSP2-4.5 (Middle of the Road):46.3% increase (Severe impact)
-•SSP3-7.0 (Regional Rivalry):25.2% increase (High impact)
-•SSP5-8.5 (Fossil-fueled Development):10.2% increase (Moderate impact)</code></pre>
+•SSP1-2.6 (Sustainability):31.6% increase (Severe impact)
+•SSP2-4.5 (Middle of the Road):48% increase (Severe impact)
+•SSP3-7.0 (Regional Rivalry):26.2% increase (High impact)
+•SSP5-8.5 (Fossil-fueled Development):13.1% increase (Moderate impact)</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Files Created:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
